@@ -1,0 +1,33 @@
+trigger:
+  - development
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  # Step 1: Build the JAR file
+  - task: Maven@3
+    displayName: 'Build Spring Boot App with Maven'
+    inputs:
+      mavenPomFile: 'pom.xml' # Change to 'my-spring-app/pom.xml' if in a subfolder
+      goals: 'clean package'
+      publishJUnitResults: true
+      javaHomeOption: 'JDKVersion'
+      jdkVersionOption: '1.17'
+
+  # Step 2: Copy the JAR file to a staging folder
+  - task: CopyFiles@2
+    displayName: 'Copy JAR to Staging Directory'
+    inputs:
+      SourceFolder: '$(system.defaultworkingdirectory)/target' # Update if using a subfolder
+      Contents: '*.jar'
+      TargetFolder: '$(build.artifactstagingdirectory)'
+
+  # Step 3: Deploy directly to Azure App Service (No separate stage needed!)
+  - task: AzureWebApp@1
+    displayName: 'Deploy Spring Boot JAR to Azure'
+    inputs:
+      azureSubscription: 'generator-management-connection' # 👈 Your Service Connection name
+      appType: 'webAppLinux'
+      appName: 'generator-manager'             # 👈 Your Azure Web App name
+      package: '$(build.artifactstagingdirectory)/*.jar'
