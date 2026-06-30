@@ -30,6 +30,8 @@ public class UserService {
     public Map<String, Integer> importFromExcel(MultipartFile file) throws IOException {
         List<User> parsed = new ArrayList<>();
 
+        DataFormatter formatter = new DataFormatter();
+
         try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
             boolean hasHeader = isHeaderRow(sheet.getRow(0));
@@ -40,9 +42,11 @@ public class UserService {
                 Cell idCell = row.getCell(0);
                 if (idCell == null || idCell.getCellType() == CellType.BLANK) continue;
 
-                long id            = (long) idCell.getNumericCellValue();
-                String firstName   = row.getCell(1).getStringCellValue().trim();
-                String lastName    = row.getCell(2).getStringCellValue().trim();
+                Long id = parseId(idCell, formatter);
+                if (id == null) continue;
+
+                String firstName   = formatter.formatCellValue(row.getCell(1)).trim();
+                String lastName    = formatter.formatCellValue(row.getCell(2)).trim();
 
                 parsed.add(new User(id, firstName, lastName));
             }
@@ -65,5 +69,23 @@ public class UserService {
         if (row == null) return false;
         Cell firstCell = row.getCell(0);
         return firstCell != null && firstCell.getCellType() == CellType.STRING;
+    }
+
+    /**
+     * Reads the id cell whether it is stored as a number or as text.
+     * Returns null when the value cannot be parsed as a whole number so the
+     * row can be skipped instead of aborting the whole import.
+     */
+    private Long parseId(Cell idCell, DataFormatter formatter) {
+        if (idCell.getCellType() == CellType.NUMERIC) {
+            return (long) idCell.getNumericCellValue();
+        }
+        String raw = formatter.formatCellValue(idCell).trim();
+        if (raw.isEmpty()) return null;
+        try {
+            return Long.parseLong(raw);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
