@@ -1,0 +1,48 @@
+name: Claude PR Review
+
+# Automatically review every pull request when it is opened, when new commits
+# are pushed to it, or when it is reopened. Posts the review as a PR comment.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude review
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Generate this token locally with `claude setup-token` and add it
+          # as a repository secret named CLAUDE_CODE_OAUTH_TOKEN.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Review the pull request #${{ github.event.pull_request.number }} in
+            this repository. Focus on:
+              - Correctness bugs and likely runtime errors (NPEs, type issues).
+              - Security problems (hardcoded secrets, injection, unsafe TLS,
+                committed PII).
+              - Missing input validation and error handling.
+              - Test coverage gaps.
+
+            Use `gh pr diff ${{ github.event.pull_request.number }}` to read the
+            changes and `gh pr view ${{ github.event.pull_request.number }}` for
+            context. Post a single concise review as a PR comment with
+            `gh pr comment ${{ github.event.pull_request.number }} --body`.
+            Group findings by severity and reference file:line. If the diff
+            looks clean, say so briefly instead of inventing issues.
+          claude_args: |
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
