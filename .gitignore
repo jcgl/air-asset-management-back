@@ -1,3 +1,7 @@
 /.idea/
 /.claude/
 /target/
+
+# Spreadsheets containing real user/PII data must not be committed
+*.xlsx
+src/main/resources/usuarios.xlsx
