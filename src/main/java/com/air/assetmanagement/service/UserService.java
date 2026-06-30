@@ -4,6 +4,7 @@ import com.air.assetmanagement.model.User;
 import com.air.assetmanagement.repository.UserRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -27,6 +28,7 @@ public class UserService {
         return userRepository.findById(id);
     }
 
+    @Transactional
     public Map<String, Integer> importFromExcel(MultipartFile file) throws IOException {
         List<User> parsed = new ArrayList<>();
 
